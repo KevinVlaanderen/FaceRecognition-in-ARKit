@@ -23,10 +23,11 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     var 👜 = DisposeBag()
     
     var faces: [Face] = []
+    var face: Face?
     
     var bounds: CGRect = CGRect(x: 0, y: 0, width: 0, height: 0)
     
-    let model: VNCoreMLModel = try! VNCoreMLModel(for: faces_model().model)
+//    let model: VNCoreMLModel = try! VNCoreMLModel(for: faces_model().model)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -48,13 +49,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             .subscribeOn(SerialDispatchQueueScheduler(qos: .background))
             .concatMap{ _ in  self.faceObservation() }
             .flatMap{ Observable.from($0)}
-            .flatMap{ self.faceClassification(face: $0.observation, image: $0.image, frame: $0.frame) }
+            .flatMap{ self.faceLandmarks(face: $0.observation, image: $0.image, frame: $0.frame) }
             .subscribe { [unowned self] event in
                 guard let element = event.element else {
                     print("No element available")
                     return
                 }
-                self.updateNode(classes: element.classes, position: element.position, frame: element.frame)
+                self.updateNode(observations: element.observations, position: element.position, frame: element.frame)
             }.disposed(by: 👜)
         
         
@@ -136,8 +137,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    private func faceClassification(face: VNFaceObservation, image: CIImage, frame: ARFrame) -> Observable<(classes: [VNClassificationObservation], position: SCNVector3, frame: ARFrame)> {
-        return Observable<(classes: [VNClassificationObservation], position: SCNVector3, frame: ARFrame)>.create{ observer in
+    private func faceLandmarks(face: VNFaceObservation, image: CIImage, frame: ARFrame) -> Observable<(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame)> {
+        return Observable<(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame)>.create{ observer in
             
             // Determine position of the face
             let boundingBox = self.transformBoundingBox(face.boundingBox)
@@ -148,23 +149,23 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             }
             
             // Create Classification request
-            let request = VNCoreMLRequest(model: self.model, completionHandler: { request, error in
+            let request = VNDetectFaceLandmarksRequest(completionHandler: { request, error in
                 guard error == nil else {
                     print("ML request error: \(error!.localizedDescription)")
                     observer.onCompleted()
                     return
                 }
                 
-                guard let classifications = request.results as? [VNClassificationObservation] else {
+                guard let observations = request.results as? [VNFaceObservation] else {
                     print("No classifications")
                     observer.onCompleted()
                     return
                 }
                 
-                observer.onNext(classes: classifications, position: worldCoord, frame: frame)
+                observer.onNext(observations: observations, position: worldCoord, frame: frame)
                 observer.onCompleted()
             })
-            request.imageCropAndScaleOption = .scaleFit
+//            request.imageCropAndScaleOption = .scaleFit
             
             do {
                 let pixel = image.cropImage(toFace: face)
@@ -177,61 +178,62 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    private func updateNode(classes: [VNClassificationObservation], position: SCNVector3, frame: ARFrame) {
+    private func updateNode(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame) {
         
-        guard let person = classes.first else {
-            print("No classification found")
-            return
-        }
+//        guard let person = observations.first else {
+//            print("No classification found")
+//            return
+//        }
         
-        let second = classes[1]
-        let name = person.identifier
-        print("""
-            FIRST
-            confidence: \(person.confidence) for \(person.identifier)
-            SECOND
-            confidence: \(second.confidence) for \(second.identifier)
-            
-            """)
-        if person.confidence < 0.60 || person.identifier == "unknown" {
-            print("not so sure")
-            return
-        }
-        
-        // Filter for existent face
-        let results = self.faces.filter{ $0.name == name && $0.timestamp != frame.timestamp }
-            .sorted{ $0.node.position.distance(toVector: position) < $1.node.position.distance(toVector: position) }
+//        let second = classes[1]
+//        let name = person.identifier
+//        print("""
+//            FIRST
+//            confidence: \(person.confidence) for \(person.identifier)
+//            SECOND
+//            confidence: \(second.confidence) for \(second.identifier)
+//
+//            """)
+//        if person.confidence < 0.60 || person.identifier == "unknown" {
+//            print("not so sure")
+//            return
+//        }
+//
+//        // Filter for existent face
+//        let results = self.faces.filter{ $0.name == name && $0.timestamp != frame.timestamp }
+//            .sorted{ $0.node.position.distance(toVector: position) < $1.node.position.distance(toVector: position) }
         
         // Create new face
-        guard let existentFace = results.first else {
-            let node = SCNNode.init(withText: name, position: position)
+//        guard let existentFace = results.first else {
+        if self.face == nil {
+            let node = SCNNode.init(withText: "Ari", position: position)
             
             Async.main {
                 self.sceneView.scene.rootNode.addChildNode(node)
                 node.show()
                 
             }
-            let face = Face.init(name: name, node: node, timestamp: frame.timestamp)
-            self.faces.append(face)
-            return
+            self.face = Face.init(name: "Ari", node: node, timestamp: frame.timestamp)
+//            self.faces.append(face)
+//            return
         }
         
         // Update existent face
         Async.main {
             
             // Filter for face that's already displayed
-            if let displayFace = results.filter({ !$0.hidden }).first  {
-                
-                let distance = displayFace.node.position.distance(toVector: position)
+            if self.face != nil {
+
+                let distance = self.face!.node.position.distance(toVector: position)
                 if(distance >= 0.03 ) {
-                    displayFace.node.move(position)
+                    self.face!.node.move(position)
                 }
-                displayFace.timestamp = frame.timestamp
-                
+                self.face!.timestamp = frame.timestamp
+
             } else {
-                existentFace.node.position = position
-                existentFace.node.show()
-                existentFace.timestamp = frame.timestamp
+                self.face!.node.position = position
+                self.face!.node.show()
+                self.face!.timestamp = frame.timestamp
             }
         }
     }

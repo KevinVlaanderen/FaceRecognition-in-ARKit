@@ -15,7 +15,6 @@
 		2EBDC71C1F0FC72F00243609 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 2EBDC71A1F0FC72F00243609 /* LaunchScreen.storyboard */; };
 		2EC9AD451F45DA5300784281 /* SCNVector3+Distance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC9AD441F45DA5300784281 /* SCNVector3+Distance.swift */; };
 		2EC9AD471F46EA1300784281 /* SCNNode+Text.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EC9AD461F46EA1300784281 /* SCNNode+Text.swift */; };
-		2EDA02C91F58AE920026EC75 /* faces_model.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 2EDA02C81F58AE8B0026EC75 /* faces_model.mlmodel */; };
 		E67BA293D563E2B1B6C08603 /* Pods_faceIT.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3651E17980590E279CE601DE /* Pods_faceIT.framework */; };
 /* End PBXBuildFile section */
 
@@ -246,7 +245,6 @@
 				2EC9AD471F46EA1300784281 /* SCNNode+Text.swift in Sources */,
 				2EBDC7141F0FC72F00243609 /* ViewController.swift in Sources */,
 				2E5C6C421F2F825900749336 /* CIImage+FaceDetection.swift in Sources */,
-				2EDA02C91F58AE920026EC75 /* faces_model.mlmodel in Sources */,
 				2EBDC7101F0FC72F00243609 /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -388,7 +386,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = BC32QNM6AD;
 				INFOPLIST_FILE = faceIT/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -410,7 +408,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = BC32QNM6AD;
 				INFOPLIST_FILE = faceIT/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
