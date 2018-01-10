@@ -24,16 +24,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     var face: Face?
     
-    var putinOrTrump: String = "Putin"
+    var johanOrDanny: String = "Johan"
     
     var bounds: CGRect = CGRect(x: 0, y: 0, width: 0, height: 0)
     
     @IBAction func holdAction(gestureRecognizer : UILongPressGestureRecognizer ) {
         if (gestureRecognizer.state == UIGestureRecognizerState.began) {
-            self.putinOrTrump = "Trump"
+            self.johanOrDanny = "Danny"
         } else if (gestureRecognizer.state == UIGestureRecognizerState.ended)
         {
-            self.putinOrTrump = "Putin"
+            self.johanOrDanny = "Johan"
         }
     }
     
@@ -147,14 +147,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     private func updateNode(observation: VNFaceObservation, position: SCNVector3, frame: ARFrame) {
         if self.face == nil {
-            let node = SCNNode.init(withText: self.putinOrTrump, position: position)
+            let node = SCNNode.init(withText: self.johanOrDanny, position: position)
             
             Async.main {
                 self.sceneView.scene.rootNode.addChildNode(node)
                 node.show()
                 
             }
-            self.face = Face.init(name: "Ari", node: node, timestamp: frame.timestamp)
+            self.face = Face.init(name: self.johanOrDanny, node: node, timestamp: frame.timestamp)
         }
         
         // Update existent face
@@ -163,7 +163,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 let distance = self.face!.node.position.distance(toVector: position)
                 if(distance >= 0.03 ) {
                     self.face!.node.move(position)
-                    self.face!.name = self.putinOrTrump
+                    self.face!.name = self.johanOrDanny
                 }
                 self.face!.timestamp = frame.timestamp
             } else {
