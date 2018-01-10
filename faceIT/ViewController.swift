@@ -112,13 +112,15 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 }
                 
                 // Map response
-                let response = observations.map({ (face) -> (observation: VNFaceObservation, position: SCNVector3, frame: ARFrame) in
+                let response = observations.flatMap({ (face) -> (observation: VNFaceObservation, position: SCNVector3, frame: ARFrame)? in
                     
                     // Determine position of the face
                     let boundingBox = self.transformBoundingBox(face.boundingBox)
-                    let worldCoord = self.normalizeWorldCoord(boundingBox)
+                    guard let worldCoord = self.normalizeWorldCoord(boundingBox) else {
+                        return nil
+                    }
                     
-                    return (observation: face, position: worldCoord!, frame: frame)
+                    return (observation: face, position: worldCoord, frame: frame)
                 })
                 observer.onNext(response)
                 observer.onCompleted()
