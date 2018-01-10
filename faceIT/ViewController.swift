@@ -27,8 +27,6 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     var bounds: CGRect = CGRect(x: 0, y: 0, width: 0, height: 0)
     
-//    let model: VNCoreMLModel = try! VNCoreMLModel(for: faces_model().model)
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -49,13 +47,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
             .subscribeOn(SerialDispatchQueueScheduler(qos: .background))
             .concatMap{ _ in  self.faceObservation() }
             .flatMap{ Observable.from($0)}
-            .flatMap{ self.faceLandmarks(face: $0.observation, image: $0.image, frame: $0.frame) }
             .subscribe { [unowned self] event in
                 guard let element = event.element else {
                     print("No element available")
                     return
                 }
-                self.updateNode(observations: element.observations, position: element.position, frame: element.frame)
+                self.updateNode(observation: element.observation, position: element.position, frame: element.frame)
             }.disposed(by: 👜)
         
         
@@ -90,23 +87,14 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         sceneView.session.pause()
     }
     
-    // MARK: - Face detections
-    
-    private func faceObservation() -> Observable<[(observation: VNFaceObservation, image: CIImage, frame: ARFrame)]> {
-        return Observable<[(observation: VNFaceObservation, image: CIImage, frame: ARFrame)]>.create{ observer in
+    private func faceObservation() -> Observable<[(observation: VNFaceObservation, position: SCNVector3, frame: ARFrame)]> {
+        return Observable<[(observation: VNFaceObservation, position: SCNVector3, frame: ARFrame)]>.create{ observer in
             guard let frame = self.sceneView.session.currentFrame else {
                 print("No frame available")
                 observer.onCompleted()
                 return Disposables.create()
             }
-            
-            // Verify tracking state and abort
-//            guard case .normal = frame.camera.trackingState else {
-//                print("Tracking not available: \(frame.camera.trackingState)")
-//                observer.onCompleted()
-//                return Disposables.create()
-//            }
-            
+
             // Create and rotate image
             let image = CIImage.init(cvPixelBuffer: frame.capturedImage).rotate
             
@@ -124,8 +112,13 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 }
                 
                 // Map response
-                let response = observations.map({ (face) -> (observation: VNFaceObservation, image: CIImage, frame: ARFrame) in
-                    return (observation: face, image: image, frame: frame)
+                let response = observations.map({ (face) -> (observation: VNFaceObservation, position: SCNVector3, frame: ARFrame) in
+                    
+                    // Determine position of the face
+                    let boundingBox = self.transformBoundingBox(face.boundingBox)
+                    let worldCoord = self.normalizeWorldCoord(boundingBox)
+                    
+                    return (observation: face, position: worldCoord!, frame: frame)
                 })
                 observer.onNext(response)
                 observer.onCompleted()
@@ -137,48 +130,7 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         }
     }
     
-    private func faceLandmarks(face: VNFaceObservation, image: CIImage, frame: ARFrame) -> Observable<(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame)> {
-        return Observable<(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame)>.create{ observer in
-            
-            // Determine position of the face
-            let boundingBox = self.transformBoundingBox(face.boundingBox)
-            guard let worldCoord = self.normalizeWorldCoord(boundingBox) else {
-                print("No feature point found")
-                observer.onCompleted()
-                return Disposables.create()
-            }
-            
-            // Create Classification request
-            let request = VNDetectFaceLandmarksRequest(completionHandler: { request, error in
-                guard error == nil else {
-                    print("ML request error: \(error!.localizedDescription)")
-                    observer.onCompleted()
-                    return
-                }
-                
-                guard let observations = request.results as? [VNFaceObservation] else {
-                    print("No classifications")
-                    observer.onCompleted()
-                    return
-                }
-                
-                observer.onNext(observations: observations, position: worldCoord, frame: frame)
-                observer.onCompleted()
-            })
-//            request.imageCropAndScaleOption = .scaleFit
-            
-            do {
-                let pixel = image.cropImage(toFace: face)
-                try VNImageRequestHandler(ciImage: pixel, options: [:]).perform([request])
-            } catch {
-                print("ML request handler error: \(error.localizedDescription)")
-                observer.onCompleted()
-            }
-            return Disposables.create()
-        }
-    }
-    
-    private func updateNode(observations: [VNFaceObservation], position: SCNVector3, frame: ARFrame) {
+    private func updateNode(observation: VNFaceObservation, position: SCNVector3, frame: ARFrame) {
         
 //        guard let person = observations.first else {
 //            print("No classification found")
