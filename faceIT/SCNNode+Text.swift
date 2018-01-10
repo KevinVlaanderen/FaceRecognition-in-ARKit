@@ -11,7 +11,7 @@ import ARKit
 import Async
 
 public extension SCNNode {
-    convenience init(withText text : String, position: SCNVector3) {
+    convenience init(withText text : String, heartBeat : String, position: SCNVector3) {
         let bubbleDepth : Float = 0.01 // the 'depth' of 3D text
         
         // TEXT BILLBOARD CONSTRAINT
@@ -20,15 +20,23 @@ public extension SCNNode {
         
         // BUBBLE-TEXT
         let bubble = SCNText(string: text, extrusionDepth: CGFloat(bubbleDepth))
-        bubble.font = UIFont(name: "Futura", size: 0.18)?.withTraits(traits: .traitBold)
+        bubble.font = UIFont(name: "Helvetica", size: 0.18)?.withTraits(traits: .traitBold)
         bubble.alignmentMode = kCAAlignmentCenter
-        bubble.firstMaterial?.diffuse.contents = UIColor.orange
-        bubble.firstMaterial?.specular.contents = UIColor.white
+        bubble.firstMaterial?.diffuse.contents = UIColor.white
+//        bubble.firstMaterial?.specular.contents = UIColor.white
         bubble.firstMaterial?.isDoubleSided = true
         bubble.chamferRadius = CGFloat(bubbleDepth)
         
+        // HEARTBEAT-TEXT
+        let heartBeatBubble = SCNText(string: heartBeat, extrusionDepth: CGFloat(bubbleDepth))
+        heartBeatBubble.font = UIFont(name: "Helvetica", size: 0.14)
+        heartBeatBubble.alignmentMode = kCAAlignmentCenter
+        heartBeatBubble.firstMaterial?.diffuse.contents = UIColor.white
+        heartBeatBubble.firstMaterial?.isDoubleSided = true
+        heartBeatBubble.chamferRadius = CGFloat(bubbleDepth)
+        
         // BUBBLE NODE
-        let (minBound, maxBound) = bubble.boundingBox
+        var (minBound, maxBound) = bubble.boundingBox
         let bubbleNode = SCNNode(geometry: bubble)
         // Centre Node - to Centre-Bottom point
         bubbleNode.pivot = SCNMatrix4MakeTranslation( (maxBound.x - minBound.x)/2, minBound.y, bubbleDepth/2)
@@ -36,15 +44,24 @@ public extension SCNNode {
         bubbleNode.scale = SCNVector3Make(0.2, 0.2, 0.2)
         bubbleNode.simdPosition = simd_float3.init(x: 0.05, y: 0.04, z: 0)
         
+        // HEARTBEAT BUBBLE NODE
+        (minBound, maxBound) = heartBeatBubble.boundingBox
+        let heartBeatBubbleNode = SCNNode(geometry: heartBeatBubble)
+        // Centre Node - to Centre-Bottom point
+        heartBeatBubbleNode.pivot = SCNMatrix4MakeTranslation( (minBound.x - minBound.x)/2, minBound.y, bubbleDepth/2)
+        // Reduce default text size
+        heartBeatBubbleNode.scale = SCNVector3Make(0.2, 0.2, 0.2)
+        heartBeatBubbleNode.simdPosition = simd_float3.init(x: 0.05, y: 0, z: 0)
+        
         // IMAGE NODE
-        let material = SCNMaterial()
-        material.diffuse.contents = UIImage.init(named: text)
-        material.isDoubleSided = true
-        let box = SCNBox.init(width: 0.5, height: 0.5, length: 0.01, chamferRadius: 0)
-        let boxNode = SCNNode(geometry: box)
-        box.firstMaterial = material
-        boxNode.scale = SCNVector3Make(0.1, 0.1, 0.1)
-        boxNode.simdPosition = simd_float3.init(x: 0.05, y: 0, z: 0)
+//        let material = SCNMaterial()
+//        material.diffuse.contents = UIImage.init(named: text)
+//        material.isDoubleSided = true
+//        let box = SCNBox.init(width: 0.5, height: 0.5, length: 0.01, chamferRadius: 0)
+//        let boxNode = SCNNode(geometry: box)
+//        box.firstMaterial = material
+//        boxNode.scale = SCNVector3Make(0.1, 0.1, 0.1)
+//        boxNode.simdPosition = simd_float3.init(x: 0.05, y: 0, z: 0)
         
         // CENTRE POINT NODE
         let sphere = SCNSphere(radius: 0.004)
@@ -53,8 +70,9 @@ public extension SCNNode {
         sphereNode.opacity = 0.6
         
         self.init()
-        addChildNode(boxNode)
+//        addChildNode(boxNode)
         addChildNode(bubbleNode)
+        addChildNode(heartBeatBubbleNode)
         addChildNode(sphereNode)
         constraints = [billboardConstraint]
         self.position = position
