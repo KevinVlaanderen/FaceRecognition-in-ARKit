@@ -22,15 +22,26 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     
     var 👜 = DisposeBag()
     
-    var faces: [Face] = []
     var face: Face?
     
+    var putinOrTrump: String = "Putin"
+    
     var bounds: CGRect = CGRect(x: 0, y: 0, width: 0, height: 0)
+    
+    @IBAction func holdAction(gestureRecognizer : UILongPressGestureRecognizer ) {
+        if (gestureRecognizer.state == UIGestureRecognizerState.began) {
+            self.putinOrTrump = "Trump"
+        } else if (gestureRecognizer.state == UIGestureRecognizerState.ended)
+        {
+            self.putinOrTrump = "Putin"
+        }
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
         sceneView.delegate = self
+        sceneView.isUserInteractionEnabled = true
         sceneView.autoenablesDefaultLighting = true
         bounds = sceneView.bounds
     }
@@ -59,10 +70,12 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         Observable<Int>.interval(1.0, scheduler: SerialDispatchQueueScheduler(qos: .default))
             .subscribeOn(SerialDispatchQueueScheduler(qos: .background))
             .subscribe { [unowned self] _ in
-                
-                self.faces.filter{ $0.updated.isAfter(seconds: 1.5) && !$0.hidden }.forEach{ face in
-                    print("Hide node: \(face.name)")
-                    Async.main { face.node.hide() }
+                if (self.face != nil && self.face!.updated.isAfter(seconds: 1.5) && !self.face!.hidden) {
+                    print("Hide node: \(self.face!.name)")
+                    Async.main {
+                        self.face!.node.removeFromParentNode()
+                        self.face = nil
+                    }
                 }
             }.disposed(by: 👜)
     }
@@ -133,34 +146,8 @@ class ViewController: UIViewController, ARSCNViewDelegate {
     }
     
     private func updateNode(observation: VNFaceObservation, position: SCNVector3, frame: ARFrame) {
-        
-//        guard let person = observations.first else {
-//            print("No classification found")
-//            return
-//        }
-        
-//        let second = classes[1]
-//        let name = person.identifier
-//        print("""
-//            FIRST
-//            confidence: \(person.confidence) for \(person.identifier)
-//            SECOND
-//            confidence: \(second.confidence) for \(second.identifier)
-//
-//            """)
-//        if person.confidence < 0.60 || person.identifier == "unknown" {
-//            print("not so sure")
-//            return
-//        }
-//
-//        // Filter for existent face
-//        let results = self.faces.filter{ $0.name == name && $0.timestamp != frame.timestamp }
-//            .sorted{ $0.node.position.distance(toVector: position) < $1.node.position.distance(toVector: position) }
-        
-        // Create new face
-//        guard let existentFace = results.first else {
         if self.face == nil {
-            let node = SCNNode.init(withText: "Ari", position: position)
+            let node = SCNNode.init(withText: self.putinOrTrump, position: position)
             
             Async.main {
                 self.sceneView.scene.rootNode.addChildNode(node)
@@ -168,22 +155,17 @@ class ViewController: UIViewController, ARSCNViewDelegate {
                 
             }
             self.face = Face.init(name: "Ari", node: node, timestamp: frame.timestamp)
-//            self.faces.append(face)
-//            return
         }
         
         // Update existent face
         Async.main {
-            
-            // Filter for face that's already displayed
             if self.face != nil {
-
                 let distance = self.face!.node.position.distance(toVector: position)
                 if(distance >= 0.03 ) {
                     self.face!.node.move(position)
+                    self.face!.name = self.putinOrTrump
                 }
                 self.face!.timestamp = frame.timestamp
-
             } else {
                 self.face!.node.position = position
                 self.face!.node.show()

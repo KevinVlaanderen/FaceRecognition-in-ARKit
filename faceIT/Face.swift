@@ -10,7 +10,7 @@ import Foundation
 import ARKit
 
 class Face {
-    let name: String
+    var name: String
     let node: SCNNode
     var hidden: Bool {
         get{
